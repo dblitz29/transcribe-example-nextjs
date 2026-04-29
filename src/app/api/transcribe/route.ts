@@ -27,8 +27,8 @@ export async function POST(request: NextRequest) {
 
     // Validate file type
     const ext = file.name.split('.').pop()?.toLowerCase();
-    const formats = { mp3: 'mp3', wav: 'wav', flac: 'flac', m4a: 'mp4', mp4: 'mp4', mov: 'mp4', avi: 'avi', mkv: 'mkv' };
-    if (!formats[ext || '']) {
+    const formats: Record<string, string> = { mp3: 'mp3', wav: 'wav', flac: 'flac', m4a: 'mp4', mp4: 'mp4', mov: 'mp4', avi: 'avi', mkv: 'mkv' };
+    if (!ext || !formats[ext]) {
       return NextResponse.json(
         { error: 'Invalid file. Supported: mp3, wav, flac, m4a, mp4, mov, avi, mkv' },
         { status: 400 }
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     const params: any = {
       TranscriptionJobName: jobName,
       Media: { MediaFileUri: `s3://${process.env.S3_BUCKET}/${fileName}` },
-      MediaFormat: formats[ext || ''],
+      MediaFormat: formats[ext],
       Settings: { ShowSpeakerLabels: false },
     };
 
@@ -92,29 +92,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, job: response.TranscriptionJob });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
-/**
- * GET /api/transcribe/[jobId]
- * Get transcript text
- */
-export async function GET_TRANSCRIPT(jobId: string) {
-  try {
-    const response = await transcribe.getTranscriptionJob({ TranscriptionJobName: jobId }).promise();
-    
-    if (response.TranscriptionJob?.TranscriptionJobStatus !== 'COMPLETED') {
-      return { success: false, error: 'Job not completed' };
-    }
-
-    const uri = response.TranscriptionJob.Transcript?.TranscriptFileUri;
-    if (!uri) return { success: false, error: 'Transcript not found' };
-
-    const res = await fetch(uri);
-    const data = await res.json();
-
-    return { success: true, transcript: data.results.transcripts[0].transcript };
-  } catch (error: any) {
-    return { success: false, error: error.message };
   }
 }

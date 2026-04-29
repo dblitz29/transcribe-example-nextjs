@@ -52,35 +52,32 @@ export default function TranscribeForm() {
     }
   };
 
-  const pollTranscription = async (id: string) => {
-    try {
-      const res = await fetch(`/api/transcribe?jobId=${id}`);
-      const data = await res.json();
+  const pollTranscription = (id: string) => {
+    const eventSource = new EventSource(`/api/transcribe/stream?jobId=${id}`);
 
-      if (!res.ok) throw new Error(data.error);
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
 
-      if (data.job.TranscriptionJobStatus === 'COMPLETED') {
-        const res2 = await fetch(`/api/transcribe/${id}`);
-        const data2 = await res2.json();
-        if (data2.success) {
-          setTranscript(data2.transcript);
-          setStatus('completed');
-        } else {
-          setError(data2.error);
-          setStatus('failed');
-        }
+      if (data.type === 'status') {
+        setStatus(data.status.toLowerCase());
+      } else if (data.type === 'completed') {
+        setTranscript(data.transcript);
+        setStatus('completed');
         setIsUploading(false);
-      } else if (data.job.TranscriptionJobStatus === 'FAILED') {
-        setError('Transcription failed');
+        eventSource.close();
+      } else if (data.type === 'failed' || data.type === 'error') {
+        setError(data.error || 'Transcription failed');
         setStatus('failed');
         setIsUploading(false);
-      } else {
-        setTimeout(() => pollTranscription(id), 5000);
+        eventSource.close();
       }
-    } catch (err: any) {
-      setError(err.message);
+    };
+
+    eventSource.onerror = () => {
+      setError('Connection lost');
       setIsUploading(false);
-    }
+      eventSource.close();
+    };
   };
 
   const handleDownload = () => {
