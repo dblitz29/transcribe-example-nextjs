@@ -60,11 +60,33 @@ S3_BUCKET=your-bucket-name
 
 1. Click "Realtime Mic" tab
 2. Select language
-3. Click "Start Recording"
-4. Allow microphone access when prompted
-5. Speak into your microphone
-6. Transcript appears in real-time
-7. Click "Stop Recording" when done
+3. Configure auto-stop settings (optional):
+   - Enable/disable "Auto-stop on silence"
+   - Adjust silence threshold (1-10 seconds)
+4. Click "Start Recording"
+5. Allow microphone access when prompted
+6. Speak into your microphone
+7. Transcript appears in real-time
+8. Recording auto-stops after silence (if enabled)
+9. Or click "Stop Recording" manually
+10. Download transcript as TXT file
+
+#### Auto-Stop on Silence
+
+AWS Transcribe Streaming does not have native auto-stop. This feature is implemented using **Voice Activity Detection (VAD)** on the client side.
+
+**How it works:**
+```
+1. Continuously calculate RMS (Root Mean Square) of audio
+2. RMS < threshold = silence detected
+3. Start countdown timer
+4. If silence continues for X seconds → auto-stop
+5. If user speaks again → timer resets
+```
+
+**Parameters:**
+- `SILENCE_RMS_THRESHOLD = 0.01` - Amplitude threshold (adjustable)
+- `silenceThreshold` - Duration in seconds (configurable via UI)
 
 ## API Endpoints
 
